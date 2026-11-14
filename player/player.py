@@ -338,7 +338,7 @@ class SegmentTimelineWidget(QWidget):
 class PlayerWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("CSCI 576 Segment Player")
+        self.setWindowTitle("Video Segment Player")
         self.resize(1460, 940)
 
         self.current_video_path: Path | None = None
@@ -1939,7 +1939,7 @@ class PlayerWindow(QMainWindow):
 
 def main() -> int:
     app = QApplication(sys.argv)
-    app.setApplicationName("CSCI 576 Segment Player")
+    app.setApplicationName("Video Segment Player")
     app.setOrganizationName("CSCI576")
     window = PlayerWindow()
     window.show()

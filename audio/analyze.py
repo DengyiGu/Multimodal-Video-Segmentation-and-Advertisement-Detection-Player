@@ -6,9 +6,8 @@ Extracts per-window audio features from a video file and produces
 
 Design choices
 --------------
-- Audio is demuxed by ``ffmpeg`` to 16 kHz mono PCM s16le, the same recipe used
-  in ``scripts/ingest_example.sh``. Loaded with the standard-library ``wave``
-  module so we avoid ``soundfile`` as a hard dependency.
+- Audio is demuxed by ``ffmpeg`` to 16 kHz mono PCM s16le and loaded with
+  the standard-library ``wave`` module.
 - DSP is pure ``numpy`` + ``scipy.signal``; no librosa.
 - Window cadence (``window_sec``) defaults to 1.0 second to match the visual
   pipeline so ``fuse_bundle_to_segments`` lines up windows by midpoint.
@@ -16,8 +15,8 @@ Design choices
   fusion layer reads:
 
       audio_label    : "silence" | "speech" | "music" | "mixed"
-      energy_rms     : float in [0, 1]; fusion treats < 0.02 as inactivity
-      anomaly_score  : float in [0, 1]; fusion treats > 0.75 as advertisement
+      energy_rms     : float in [0, 1]
+      anomaly_score  : float in [0, 1]
 
   Plus auxiliary numeric features (``rms_db``, ``zcr``, ``spectral_centroid``,
   ``spectral_flatness``, ``spectral_rolloff``) that downstream tooling and

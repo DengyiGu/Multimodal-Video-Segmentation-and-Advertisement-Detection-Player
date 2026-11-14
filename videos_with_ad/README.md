@@ -1,15 +1,11 @@
-# Stitched dataset videos (`videos_with_ad`)
+# Local videos
 
-Put the **`test_001.mp4` … `test_005.mp4`** files that match [video_info/](../video_info/) here (same names as in each JSON `video_filename`).
+This directory is an alternative location for source videos. No video files are
+included. Analyze a file directly:
 
-The visual CLI looks here **automatically** if the file is not under `--videos-root` (default `data/input`).
-
-## Optional: mirror into `data/input/` (symlinks)
-
-From the repository root:
-
-```bash
-bash scripts/sync_videos_with_ad_to_data_input.sh
+```console
+python -m scripts.run_pipeline videos_with_ad/example.mp4 --skip-speech
 ```
 
-That creates symlinks under `data/input/` pointing at these files so other tools that only read `data/input/` still work.
+The visual metadata CLI also searches this directory for files named in
+[video_info](../video_info/README.md).

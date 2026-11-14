@@ -5,16 +5,16 @@ Two modes:
   Bundle mode (fast, for iteration after visual analysis is already done):
     python -m fusion --bundle data/output/test_001_analysis_bundle.json
 
-  End-to-end mode (runs visual analysis first, then speech, then fuses):
+  End-to-end mode (runs visual, audio, and optional speech analysis, then fuses):
     python -m fusion --video videos_with_ad/test_001.mp4
 
 In both modes --out controls where segments.json is written.
 If --out is omitted, the file is written next to the bundle or video.
 
-Recommended parameters for best results:
-    --min-segment-sec 20 --sample-fps 1.0 --window-sec 2.0
+To match the pipeline runner sampling:
+    --sample-fps 1.0 --window-sec 2.0
 
-Always run with conda activate cs576 first so speech recognition is available.
+Install the optional speech dependencies and a local model to enable transcription.
 """
 
 from __future__ import annotations
@@ -165,18 +165,18 @@ def main(argv: list[str] | None = None) -> int:
         "--skip-speech",
         action="store_true",
         default=False,
-        help="Skip speech recognition even if available (faster, visual-only run).",
+        help="Skip speech recognition; visual and audio analysis still run.",
     )
     parser.add_argument(
         "--min-segment-sec",
         type=float,
         default=4.0,
-        help="Segments shorter than this get absorbed by neighbors (default 4.0, recommend 20.0).",
+        help="Compatibility option; unused by the current fusion engine.",
     )
 
     args = parser.parse_args(argv)
 
-    # End-to-end mode: video -> visual analysis -> speech -> fuse
+    # End-to-end mode: video -> visual + audio + speech -> fuse
     if args.video is not None:
         video = args.video.expanduser().resolve()
         if not video.is_file():

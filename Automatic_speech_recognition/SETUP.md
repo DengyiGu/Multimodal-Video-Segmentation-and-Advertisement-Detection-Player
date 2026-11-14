@@ -9,7 +9,7 @@ python -m pip install -r Automatic_speech_recognition/requirements.txt
 Download one local speech-to-text model:
 
 ```bash
-python Automatic_speech_recognition/segment_text_analyzer.py --download-model --model small
+python -m Automatic_speech_recognition.segment_text_analyzer --download-model --model small
 ```
 
 The default model is `small`. Models are stored under the `models/` folder next to `segment_text_analyzer.py`:
@@ -39,7 +39,7 @@ video path        Required for transcription. Path to the local video file.
 --compute-type    CPU compute type for faster-whisper. Default: int8.
                   Common choices: int8, int16, float32.
 --language        Transcription language code. Default: en.
---vad             Enables voice activity detection. Default: off. VAD can speed up transcription by skipping non-speech sections, but it may miss some imformation. Leave it off when accuracy is more important.
+--vad             Enables voice activity detection. Default: off. VAD can speed up transcription by skipping non-speech sections, but it may miss some information. Leave it off when accuracy is more important.
 --model-dir       Optional custom directory for the selected local model. The default directory is: Automatic_speech_recognition/models/faster-whisper-<model>
 ```
 
@@ -54,25 +54,25 @@ Examples:
 Run transcription with default options (`--model small`, `--language en`, VAD off):
 
 ```bash
-python Automatic_speech_recognition/segment_text_analyzer.py videos_with_ad/test_001.mp4
+python -m Automatic_speech_recognition.segment_text_analyzer data/input/example.mp4
 ```
 
 Run transcription with a different downloaded model:
 
 ```bash
-python Automatic_speech_recognition/segment_text_analyzer.py videos_with_ad/test_001.mp4 --model tiny
+python -m Automatic_speech_recognition.segment_text_analyzer data/input/example.mp4 --model tiny
 ```
 
 Run transcription with a different language:
 
 ```bash
-python Automatic_speech_recognition/segment_text_analyzer.py videos_with_ad/test_001.mp4 --language zh
+python -m Automatic_speech_recognition.segment_text_analyzer data/input/example.mp4 --language zh
 ```
 
 Run transcription with VAD enabled:
 
 ```bash
-python Automatic_speech_recognition/segment_text_analyzer.py videos_with_ad/test_001.mp4 --vad
+python -m Automatic_speech_recognition.segment_text_analyzer data/input/example.mp4 --vad
 ```
 
 Notes:

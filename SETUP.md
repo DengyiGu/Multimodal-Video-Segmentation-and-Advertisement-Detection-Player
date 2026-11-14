@@ -1,94 +1,85 @@
-# Setup and run guide (Songmao branch)
+# Installation and usage
 
-End-to-end recipe to produce labeled segments from a video and play them in
-the GUI player. Everything runs from the repository root with `PYTHONPATH=.`.
+## Environment
 
-## 1. Install dependencies
+Use Python 3.10 or newer. From the repository root:
 
 ```powershell
-python -m pip install -r requirements.txt                                 # analysis core
-python -m pip install -r Automatic_speech_recognition/requirements.txt    # speech recognition
-python -m pip install -r requirements-player.txt                          # PySide6 (player UI only)
+python -m venv .venv
+.venv/Scripts/Activate.ps1
+python -m pip install -e ".[player,speech]"
 ```
 
-## 2. Install ffmpeg (system binary)
+On macOS and Linux, activate with `source .venv/bin/activate`.
+For command-line analysis without the desktop player or speech recognition,
+install with `python -m pip install -e .` instead.
 
-The audio analyzer uses `ffmpeg` to demux audio, and Qt's video backend on
-Windows can use it for codec coverage.
+The dependency files are also available for source-based use:
+
+```console
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-player.txt
+python -m pip install -r Automatic_speech_recognition/requirements.txt
+```
+
+## FFmpeg
+
+Install FFmpeg with both `ffmpeg` and `ffprobe` available on PATH. On Windows:
 
 ```powershell
 winget install --id Gyan.FFmpeg
-# Open a new shell so the new PATH is picked up, or in the same shell:
-# $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
+```
+
+Open a new terminal after installation, reactivate the environment, and check:
+
+```console
 ffmpeg -version
+ffprobe -version
 ```
 
-## 3. Download the speech model (one-time, ~500 MB for `small`)
+The audio analyzer uses FFmpeg to extract audio. Duration probing may use
+ffprobe. Video playback also depends on the codecs supported by Qt's backend.
 
-```powershell
-python Automatic_speech_recognition/segment_text_analyzer.py --download-model --model small
+## Speech model
+
+Download the model once before running the full pipeline:
+
+```console
+python -m Automatic_speech_recognition.segment_text_analyzer --download-model --model small
 ```
 
-Other sizes: `tiny`, `base`, `small` (default), `medium`, `large-v3`.
+Models remain in `Automatic_speech_recognition/models/` and are excluded from
+Git. Transcription uses CPU `int8` compute. See the
+[speech setup guide](Automatic_speech_recognition/SETUP.md) for model options.
 
-## 4. Drop a video in
+## Analyze and play
 
-Place a `.mp4` (or any container ffmpeg can decode) under
-`videos_with_ad/` or `data/input/`. The course test set uses
-`videos_with_ad/test_001.mp4` … `test_005.mp4`.
-
-## 5. Run the pipeline
-
-```powershell
-$env:PYTHONPATH = "."
-python scripts/run_pipeline.py videos_with_ad/test_001.mp4
-```
-
-This runs visual analysis -> audio analysis -> speech recognition ->
-fusion and writes:
-
-- `data/output/test_001_analysis_bundle.json` (full per-window features)
-- `data/output/test_001_segments.json` (final labeled segments for the player)
-
-Useful flags:
-
-| Flag | Effect |
-| --- | --- |
-| `--skip-speech` | Skip Whisper transcription (much faster, lower accuracy) |
-| `--skip-audio` | Skip our audio modality entirely |
-| `--vad` | Enable Whisper voice-activity-detection filter (faster) |
-| `--model {tiny\|base\|small\|medium\|large-v3}` | Choose a different Whisper model |
-| `--sample-fps 1.0 --window-sec 2.0 --min-segment-sec 20` | Leena's recommended params |
-
-## 6. Launch the player
-
-```powershell
+```console
+python -m scripts.run_pipeline data/input/example.mp4
 python -m player.player
 ```
 
-Click "Open Video", pick the file you analyzed in step 5. The player loads
-`data/output/<stem>_segments.json` automatically (lookup happens in
-`player_fusion.py`).
+Use `--skip-speech` if no model is installed, or `--skip-audio` for visual-only
+analysis. The command-line runner requires the requested dependencies and model;
+it does not silently skip missing speech support.
 
-If you skip step 5, the player still opens — it falls back to running the
-full pipeline live (slow), and ultimately to demo segments if all else fails.
+In **File > Open Video**, select the analyzed file. The player first checks
+`data/output/<stem>_segments.json`, then a matching file beside the video. Run
+from the repository root to use the standard output directory. Existing cached
+segments take priority; rerun the pipeline to refresh them after changing a
+source video or analysis settings.
 
-## 7. Evaluate against ground truth
+## Troubleshooting
 
-For the bundled course test set:
+- **Module not found:** activate this project's environment and run commands
+  from the repository root. Use `python -m ...` as shown above.
+- **Local speech model not found:** download the same model selected with
+  `--model`, or use `--skip-speech`.
+- **FFmpeg or ffprobe not found:** check PATH in a new terminal.
+- **Player has no detected labels:** check terminal messages. If live analysis
+  fails, the fallback is one full-length content segment.
+- **Custom outputs are not loaded:** place `<stem>_segments.json` beside the
+  video, or use the default `data/output/` directory.
 
-```powershell
-python scripts/evaluate.py
-# or for a single test
-python scripts/evaluate.py --test test_001
-```
-
-The evaluator reads `video_info/test_*.json` (ground-truth ad ranges) and
-the `data/output/test_*_segments.json` files to report precision / recall /
-F1 / IoU per video plus a mean.
-
-## 8. Tests
-
-```powershell
-python -m pytest -q
-```
+See the [README](README.md) for pipeline options, output format, and detection
+limitations.

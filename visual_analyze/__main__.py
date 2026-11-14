@@ -175,9 +175,7 @@ def main(argv: list[str] | None = None) -> int:
                 "\nDo one of the following:\n"
                 f"  • Put `{doc.primary_video_basename()}` directly in `data/input/`, or in `data/input/videos_with_ads/`, or\n"
                 "  • Put all `test_*.mp4` under `videos_with_ad/` at the repo root, or\n"
-                "  • Pass `--videos-root /path/to/folder` that already contains that file.\n\n"
-                "Quick symlink layout (after MP4s are in videos_with_ad/):\n"
-                "  bash scripts/sync_videos_with_ad_to_data_input.sh",
+                "  • Pass `--videos-root /path/to/folder` that already contains that file.",
                 file=sys.stderr,
             )
             raise SystemExit(2)

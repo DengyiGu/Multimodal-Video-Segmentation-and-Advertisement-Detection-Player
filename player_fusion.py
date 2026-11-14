@@ -1,33 +1,6 @@
-"""
-Drop-in replacement for run_video_segmentation() in player/player.py.
+"""Load cached segments or analyze a video for the desktop player.
 
-HOW TO INTEGRATE
-In player/player.py, replace the existing run_video_segmentation function:
-
-    def run_video_segmentation(video_path: Path) -> list[Segment]:
-        simulated_step_delay_seconds = 0.8
-        sleep(simulated_step_delay_seconds)
-        ...
-        segments = build_even_segments(duration_seconds)   # ← fake
-        ...
-        return segments
-
-With this single import + call:
-
-    from player_fusion_patch import run_video_segmentation
-
-Or copy-paste the function body directly into player.py.
-
-LOOKUP ORDER
-When a video is loaded, the player looks for a pre-computed segments file in the following order:
-
-  1. data/output/<video_stem>_segments.json   (standard fusion output path)
-  2. <same_dir_as_video>/<video_stem>_segments.json
-
-If found, segments are loaded instantly (no processing delay).
-If not found, the full fusion pipeline runs live (visual analysis + fuse).
-If the fusion pipeline fails for any reason, the player falls back to build_full_content_segment() so it never 
-crashes.
+If analysis fails, preserve playback with a single full-length content segment.
 """
 
 from __future__ import annotations
@@ -38,7 +11,12 @@ from pathlib import Path
 from typing import Any
 
 
-from player.segments import Segment, build_full_content_segment, build_segment_from_payload, probe_video_duration_seconds
+from player.segments import (
+    Segment,
+    build_full_content_segment,
+    build_segment_from_payload,
+    probe_video_duration_seconds,
+)
 
 
 # Candidate locations for a pre-computed segments file
@@ -59,20 +37,23 @@ def _find_segments_file(video_path: Path) -> Path | None:
     return None
 
 
-# Load segments from a pre-computed segments JSON
+# Convert cached or freshly computed intervals to player segments
 
-def _load_segments_from_json(path: Path) -> list[Segment]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    raw_segments: list[dict[str, Any]] = data.get("segments", [])
-    segments: list[Segment] = []
-    for i, payload in enumerate(raw_segments):
-        seg = build_segment_from_payload(payload, i)
-        if seg is not None:
-            segments.append(seg)
+def _build_player_segments(payloads: list[dict[str, Any]]) -> list[Segment]:
+    segments = []
+    for index, payload in enumerate(payloads):
+        segment = build_segment_from_payload(payload, index)
+        if segment is not None:
+            segments.append(segment)
     return segments
 
 
-# Run fusion live (visual analysis + fuse)
+def _load_segments_from_json(path: Path) -> list[Segment]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return _build_player_segments(data.get("segments", []))
+
+
+# Run visual, audio, and optional speech analysis before fusion
 
 def _run_fusion_live(video_path: Path) -> list[Segment]:
     from visual.analyze import build_analysis_bundle
@@ -114,26 +95,13 @@ def _run_fusion_live(video_path: Path) -> list[Segment]:
     except Exception as e:
         print(f"[fusion] Warning: could not save segments.json: {e}", file=sys.stderr)
 
-    segments: list[Segment] = []
-    for i, payload in enumerate(raw_segments):
-        seg = build_segment_from_payload(payload, i)
-        if seg is not None:
-            segments.append(seg)
-    return segments
+    return _build_player_segments(raw_segments)
 
 
-# Public entry point — replaces run_video_segmentation in player.py
+# Player entry point
 
 def run_video_segmentation(video_path: Path) -> list[Segment]:
-    """
-    Replacement for the stub run_video_segmentation() in player/player.py.
-
-    Priority:
-      1. Load pre-computed segments.json if it exists next to the video or in data/output/.
-      2. Otherwise, run visual analysis + fusion live and cache the result.
-      3. If everything fails, fall back to build_full_content_segment() so the player still works for demo 
-         purposes.
-    """
+    """Prefer cached segments, then live analysis, then full-content playback."""
     # 1. Pre-computed file
     segments_file = _find_segments_file(video_path)
     if segments_file is not None:
@@ -154,7 +122,7 @@ def run_video_segmentation(video_path: Path) -> list[Segment]:
     except Exception as e:
         print(f"[fusion] Live fusion failed: {e}", file=sys.stderr)
 
-    # 3. Graceful fallback — fake even segments so the player still opens
-    print("[fusion] Falling back to demo segments.", file=sys.stderr)
+    # 3. Preserve playback if analysis is unavailable
+    print("[fusion] Falling back to a full-length content segment.", file=sys.stderr)
     duration = probe_video_duration_seconds(video_path)
     return build_full_content_segment(duration)
