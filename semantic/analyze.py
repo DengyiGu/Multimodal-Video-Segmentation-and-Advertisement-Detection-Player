@@ -70,7 +70,7 @@ def download_semantic_model(
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:
-        raise RuntimeError("Install sentence-transformers first: python -m pip install -r requirements-semantic.txt") from exc
+        raise RuntimeError("Install sentence-transformers first: python -m pip install .[semantic]") from exc
 
     model_dir = model_dir if model_dir is not None else get_semantic_model_dir(model_name)
     model_dir.mkdir(parents=True, exist_ok=True)
@@ -103,7 +103,7 @@ def _load_sentence_model(model_dir: str, device: str):
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:
-        raise RuntimeError("Install sentence-transformers first: python -m pip install -r requirements-semantic.txt") from exc
+        raise RuntimeError("Install sentence-transformers first: python -m pip install .[semantic]") from exc
     return SentenceTransformer(model_dir, device=device)
 
 

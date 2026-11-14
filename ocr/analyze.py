@@ -37,7 +37,7 @@ def build_ocr_spans(
     try:
         import easyocr
     except ImportError as exc:
-        raise RuntimeError("Install optional OCR dependency: python -m pip install -r requirements-ocr.txt") from exc
+        raise RuntimeError("Install optional OCR dependency: python -m pip install .[ocr]") from exc
 
     if sample_every_sec <= 0:
         raise ValueError("sample_every_sec must be positive.")

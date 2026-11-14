@@ -1,32 +1,7 @@
-"""End-to-end pipeline runner: visual -> audio (+ speech) -> fusion -> segments.
+"""Analyze one video with visual, audio, speech, and fusion passes.
 
-Usage
------
-Run from the repo root with PYTHONPATH set so the local packages are importable::
-
-    PYTHONPATH=. python scripts/run_pipeline.py videos_with_ad/test_001.mp4
-
-That single command:
-  1. Runs the visual analyzer and writes ``<stem>_analysis_bundle.json``.
-  2. Runs the audio analyzer (and Whisper, unless ``--skip-speech``) and merges
-     audio_windows + speech_spans into the same bundle.
-  3. Runs fusion and writes ``<stem>_segments.json``.
-
-After it finishes, opening the video in the player will load those segments
-automatically (player_fusion.py looks them up in ``data/output/``).
-
-Common options
---------------
-  --skip-speech          Skip Whisper transcription (faster; reduces accuracy).
-  --skip-audio           Skip the audio modality entirely.
-  --model MODEL          Whisper model size (default: small).
-  --vad                  Enable Whisper VAD (skips silent regions).
-  --sample-fps F         Visual frame sample rate (default: 1.0).
-  --window-sec W         Visual window length in seconds (default: 2.0).
-  --audio-window-sec W   Audio window length in seconds (default: 1.0).
-  --min-segment-sec S    Minimum segment length used by fusion smoothing
-                         (default: 20.0).
-  --out-dir DIR          Output directory (default: data/output).
+Run from the repository root with ``python -m scripts.run_pipeline --help``.
+Outputs are written to ``data/output`` for the desktop player.
 """
 
 from __future__ import annotations
@@ -107,7 +82,7 @@ def _run_fusion(bundle_path: Path, segments_out: Path, min_segment_sec: float) -
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python scripts/run_pipeline.py",
+        prog="python -m scripts.run_pipeline",
         description="Run visual + audio + speech + fusion end-to-end on a video.",
     )
     parser.add_argument("video", type=Path, help="Input video file (.mp4 / .mov / ...).")
@@ -173,7 +148,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print()
     print(f"Done. Launch the player with:")
-    print(f"  PYTHONPATH=. python -m player.player")
+    print(f"  python -m player.player")
     print(f"  (open '{video}' in the file dialog; segments load from {segments_path.name})")
     return 0
 

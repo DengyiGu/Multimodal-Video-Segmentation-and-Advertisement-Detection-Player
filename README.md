@@ -32,7 +32,14 @@ ffprobe -version
 ```
 
 On macOS or Linux, activate with `source .venv/bin/activate`.
-See [SETUP.md](SETUP.md) for FFmpeg installation and troubleshooting.
+On Windows, FFmpeg can be installed with:
+
+```powershell
+winget install --id Gyan.FFmpeg
+```
+
+Open a new terminal after installation and reactivate the environment. Create
+`data/input/` for your videos; the analyzer creates output directories as needed.
 
 Download the selected speech model once:
 
@@ -155,11 +162,10 @@ Example segment file (timestamps in seconds):
 }
 ```
 
-The bundled example illustrates the schema and can be fused without a video or
-speech model; it is not a detection benchmark:
+To fuse an analysis bundle you have already generated:
 
 ```console
-python -m fusion --bundle sample_data/sample_analysis_bundle.json --skip-speech --out data/output/sample_segments.json
+python -m fusion --bundle data/output/example_analysis_bundle.json --skip-speech --out data/output/example_segments.json
 ```
 
 ## Project layout
@@ -167,19 +173,14 @@ python -m fusion --bundle sample_data/sample_analysis_bundle.json --skip-speech 
 | Path | Role |
 | --- | --- |
 | `scripts/run_pipeline.py` | Single-video visual/audio/speech runner. |
-| `visual/`, `visual_analyze/` | Visual feature extraction and CLI. |
-| `audio/`, `audio_analyze/` | Audio feature extraction and CLI. |
+| `visual/` | Visual feature extraction. |
+| `audio/` | Audio feature extraction. |
 | `Automatic_speech_recognition/` | Local speech model download and transcription. |
 | `ocr/` | On-screen text extraction from sampled frames. |
 | `semantic/` | Semantic advertisement and video-structure scores. |
 | `fusion/` | Advertisement fusion, intro/outro detectors, and text dictionaries. |
-| `schemas/` | Shared analysis and dataset metadata models. |
+| `schemas/` | Shared analysis models. |
 | `player/`, `player_fusion.py` | Desktop player, cache loading, and live analysis. |
-| `sample_data/`, `video_info/` | Small schema and stitched-video metadata examples. |
-
-Module details: [fusion](fusion/README.md), [player](player/README.md),
-[speech recognition](Automatic_speech_recognition/SETUP.md), and
-[dataset metadata](video_info/README.md).
 
 ## Detection limits and data
 
@@ -196,3 +197,15 @@ No video dataset is included. The optional extended brand dictionary retains its
 Simple Icons source and CC0 attribution in `fusion/extra_brand_names.txt`;
 brand names and trademarks belong to their respective owners. It is enabled by
 default in the current code; set `FUSION_USE_EXTRA_BRANDS=0` to disable it.
+
+## Troubleshooting
+
+- **Missing module:** activate this project's environment, install the needed
+  optional dependencies, and run commands from the repository root.
+- **Local model not found:** prepare the model first. Use `--skip-speech` in the
+  simple runner if speech recognition is not needed.
+- **FFmpeg or ffprobe not found:** check PATH in a new terminal.
+- **Cached labels do not match the video:** rerun analysis to overwrite the
+  segment file. Existing cached segments take priority in the player.
+- **Custom outputs are not loaded:** place `<video_stem>_segments.json` beside
+  the video, or use the default `data/output/` directory.

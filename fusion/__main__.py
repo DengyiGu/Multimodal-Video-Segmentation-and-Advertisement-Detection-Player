@@ -1,20 +1,6 @@
-"""
-CLI entry point for the fusion pipeline.
+"""Fuse an existing analysis bundle or analyze a video with available modalities.
 
-Two modes:
-  Bundle mode (fast, for iteration after visual analysis is already done):
-    python -m fusion --bundle data/output/test_001_analysis_bundle.json
-
-  End-to-end mode (runs visual analysis first, then speech, then fuses):
-    python -m fusion --video videos_with_ad/test_001.mp4
-
-In both modes --out controls where segments.json is written.
-If --out is omitted, the file is written next to the bundle or video.
-
-Recommended parameters for best results:
-    --min-segment-sec 20 --sample-fps 1.0 --window-sec 2.0
-
-Always run with conda activate cs576 first so speech recognition is available.
+Run from the repository root with ``python -m fusion --help``.
 """
 
 from __future__ import annotations
@@ -116,10 +102,7 @@ def _run_visual_and_fuse(
     except ImportError as exc:
         print(
             f"Error: visual analysis dependencies not available: {exc}\n"
-            "Install opencv-python and scenedetect, or pre-compute a bundle with\n"
-            "  PYTHONPATH=. python -m visual_analyze --video ... --bundle-out ...\n"
-            "then run fusion in bundle mode:\n"
-            "  PYTHONPATH=. python -m fusion --bundle <bundle.json>",
+            "Install the project dependencies with: python -m pip install .",
             file=sys.stderr,
         )
         return 1
@@ -323,7 +306,7 @@ def main(argv: list[str] | None = None) -> int:
     bundle = load_bundle(bundle_path)
 
     if bundle.visual is None or not bundle.visual.windows:
-        print("Error: bundle contains no visual windows. Re-run visual_analyze first.", file=sys.stderr)
+        print("Error: bundle contains no visual windows. Analyze the source video first.", file=sys.stderr)
         return 1
 
     # Try to add audio if the bundle doesn't already have it

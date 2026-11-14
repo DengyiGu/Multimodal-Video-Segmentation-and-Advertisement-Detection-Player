@@ -12,12 +12,7 @@ dist/
 *.egg-info/
 
 # Local media, models, and generated analysis
-/data/input/
-/data/output/
-/videos_with_ad/*.mp4
-/videos_with_ad/*.mov
-/videos_with_ad/*.mkv
-/videos_with_ad/*.avi
+/data/
 /Automatic_speech_recognition/models/
 /ocr/models/
 /semantic/models/

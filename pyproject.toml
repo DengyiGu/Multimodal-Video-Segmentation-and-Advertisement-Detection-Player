@@ -25,7 +25,7 @@ semantic = ["sentence-transformers>=3.0.0", "scikit-learn>=1.8.0"]
 [tool.setuptools]
 py-modules = ["player_fusion"]
 packages = [
-    "audio", "audio_analyze", "visual", "visual_analyze", "fusion",
+    "audio", "visual", "fusion",
     "schemas", "player", "scripts", "Automatic_speech_recognition", "ocr", "semantic",
 ]
 include-package-data = false
