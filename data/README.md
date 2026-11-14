@@ -7,4 +7,4 @@ segment files to `data/output/`. Both directories are excluded from Git.
 python -m scripts.run_pipeline data/input/example.mp4 --skip-speech
 ```
 
-See the [README](../README.md) for batch processing and output details.
+See the [README](../README.md) for usage and output details.

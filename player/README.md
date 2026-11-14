@@ -8,7 +8,8 @@ python -m player.player
 ```
 
 Choose **File > Open Video**. The player loads cached segment JSON when available,
-otherwise it analyzes the video in a background worker. Precomputing with
+otherwise it analyzes the video in a background worker. This path adds optional
+OCR and semantic scoring, with speech and OCR run concurrently. Precomputing with
 `python -m scripts.run_pipeline` makes subsequent opens faster.
 
 ## Controls
@@ -37,3 +38,11 @@ The player taxonomy accepts Core Content, Intro, Outro, Advertisement,
 Self-Promotion, Recap, Transition, Inactivity, and Filler. Only Core Content is
 classified as `content` by default. The fusion engine currently produces the
 first four labels. See the [JSON example](../README.md#output).
+
+## Inference devices
+
+The existing player defaults to CUDA for OCR and semantic models; speech uses
+CPU `int8` with VAD. Set `CS576_TEXT_MODEL_DEVICE=cpu` before launching to run
+OCR and semantic inference on CPU. See the [README](../README.md#analyze-and-play)
+for the PowerShell command. Missing dependencies or local models are skipped
+with terminal diagnostics.

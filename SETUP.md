@@ -81,5 +81,18 @@ source video or analysis settings.
 - **Custom outputs are not loaded:** place `<stem>_segments.json` beside the
   video, or use the default `data/output/` directory.
 
-See the [README](README.md) for pipeline options, output format, and detection
-limitations.
+## Optional OCR and semantic models
+
+See the [README](README.md#optional-ocr-and-semantic-scoring) for optional
+installation and model preparation. The simple runner uses visual/audio/speech
+analysis. The fusion CLI and player also support OCR and semantic scoring.
+
+The player defaults to CUDA for OCR and semantic inference. To choose CPU:
+
+```powershell
+$env:CS576_TEXT_MODEL_DEVICE = "cpu"
+python -m player.player
+```
+
+The fusion CLI uses CPU unless `--cuda-text-models` is selected. ASR device
+selection is separate. See the [README](README.md) for the full usage details.

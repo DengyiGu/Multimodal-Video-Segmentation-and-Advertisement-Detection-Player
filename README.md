@@ -1,99 +1,144 @@
 # Multimodal Video Segmentation and Advertisement Detection Player
 
 A local video analyzer and desktop player that identifies advertisements, intros,
-outros, and main content. Visual features, audio changes, and speech transcripts
-are combined into a labeled timeline, so you can inspect segment boundaries and
-watch the main content with non-content sections skipped.
+outros, and main content. Visual features, audio changes, speech transcripts,
+on-screen text, and optional semantic scores are combined into a labeled
+timeline for browsing and content-only playback.
 
 ## Features
 
-- Analyze a single video or a folder of videos.
-- Combine visual appearance, scene changes, audio features, and optional local
-  speech recognition with faster-whisper.
-- Save analysis features and segment timestamps as JSON for reuse.
-- Browse segments in a colored timeline and segment list.
-- Jump between segments, adjust playback speed and volume, and use fullscreen.
-- Enable **Play Content Only** to skip advertisements, intros, and outros.
+- Detect advertisements and opening/closing sections with multimodal signals.
+- Read speech with faster-whisper and on-screen text with optional EasyOCR.
+- Add optional sentence-transformer scores for advertisements, intros, and outros.
+- Reuse JSON segment files without analyzing a video again.
+- Browse a colored timeline and segment list, jump between segments, and adjust
+  playback speed, volume, and fullscreen controls.
+- Enable **Play Content Only** to skip non-content segments.
 
-The pipeline produces timestamps and labels. It does not cut or re-encode the
-source video into separate files.
+The output is a timeline of timestamps and labels. The program does not cut or
+re-encode the source video into separate files.
 
-## Quick start
+## Installation
 
-Requires **Python 3.10+** and **FFmpeg**, including `ffprobe`, on your PATH.
-Run the commands below from the repository root.
+Requires **Python 3.10+** and **FFmpeg**, including `ffprobe`, on PATH. Run all
+commands from the repository root.
 
 ```powershell
 python -m venv .venv
 .venv/Scripts/Activate.ps1
-python -m pip install -e ".[player]"
+python -m pip install -e ".[player,speech]"
 ffmpeg -version
 ffprobe -version
 ```
 
-On macOS or Linux, activate the environment with `source .venv/bin/activate`.
-See [SETUP.md](SETUP.md) for installation details and troubleshooting.
+On macOS or Linux, activate with `source .venv/bin/activate`.
+See [SETUP.md](SETUP.md) for FFmpeg installation and troubleshooting.
 
-Place a video in `data/input/`, then analyze it without speech recognition:
+Download the selected speech model once:
 
 ```console
-python -m scripts.run_pipeline data/input/example.mp4 --skip-speech
+python -m Automatic_speech_recognition.segment_text_analyzer --download-model --model small
+```
+
+Models are stored in `Automatic_speech_recognition/models/`. The default speech
+model is `small`; transcription uses CPU `int8` compute unless another device is
+selected. English is the default language.
+
+## Analyze and play
+
+For visual, audio, and speech analysis:
+
+```console
+python -m scripts.run_pipeline data/input/example.mp4
 python -m player.player
 ```
 
-In the player, choose **File > Open Video** and select the same video. The player
-loads `data/output/example_segments.json` automatically. Select **Play Content
-Only** to skip non-content segments, or double-click a segment to seek to it.
+Use `--skip-speech` without a local speech model, or `--skip-audio` for visual-only
+analysis. This runner analyzes one video at a time and does not invoke OCR or
+semantic scoring. Use the fusion CLI or player for those optional passes.
 
-### Enable speech recognition
+In the player, choose **File > Open Video** and select the analyzed video.
+The player first loads `data/output/<video_stem>_segments.json`, then checks for
+the same filename beside the video. Without cached segments, it runs live
+analysis in a background worker. Speech and OCR run concurrently in that path,
+followed by semantic scoring and fusion. Missing optional dependencies or local
+models are reported in the terminal and skipped.
 
-```console
-python -m pip install -e ".[speech]"
-python -m Automatic_speech_recognition.segment_text_analyzer --download-model --model small
-python -m scripts.run_pipeline data/input/example.mp4
+The player preserves the existing default of CUDA for OCR and semantic models.
+To run those passes on CPU instead, set the environment variable before launch:
+
+```powershell
+$env:CS576_TEXT_MODEL_DEVICE = "cpu"
+python -m player.player
 ```
 
-The selected model is downloaded once to
-`Automatic_speech_recognition/models/faster-whisper-small/`. Transcription then
-runs locally on the CPU with `int8` compute. No GPU is required. The default
-language is English; use `--language zh` for Chinese, for example.
+This setting controls OCR and semantic inference; the player's speech pass uses
+CPU `int8` with voice activity detection enabled.
 
-## Pipeline options
+## Optional OCR and semantic scoring
+
+Install the optional dependencies:
+
+```console
+python -m pip install -e ".[ocr,semantic]"
+```
+
+Prepare local models once while online:
+
+```console
+python -c "import easyocr; easyocr.Reader(['en'], gpu=False, model_storage_directory='ocr/models', download_enabled=True)"
+python -m semantic.analyze --download-model --model mini
+```
+
+OCR models remain in `ocr/models/`; semantic models remain in `semantic/models/`.
+The semantic choices are `mini` (all-MiniLM-L6-v2) and `mpnet`
+(all-mpnet-base-v2); automatic integration uses `mini`. Analysis expects local
+models and does not download them automatically.
+
+Run the integrated CLI with CPU inference:
+
+```console
+python -m fusion --video data/input/example.mp4 --sample-fps 1 --window-sec 2 --asr-device cpu --out data/output/example_segments.json --bundle-out data/output/example_analysis_bundle.json
+```
+
+The fusion CLI uses CPU for OCR and semantic scoring by default. Its optional
+`--cuda-text-models` switch enables CUDA for those passes; ASR has separate
+`--asr-device` and `--asr-compute-type` options. The player environment variable
+and CLI flags apply to their respective entry points.
+
+## Runner options
 
 ```console
 python -m scripts.run_pipeline --help
-python -m scripts.run_pipeline --input-dir data/input --skip-speech
-python -m scripts.run_pipeline data/input/example.mp4 --skip-audio
 ```
 
 | Option | Purpose |
 | --- | --- |
-| `--input-dir DIR` | Analyze `.mp4`, `.mov`, `.mkv`, and `.avi` files directly in a folder. |
-| `--out-dir DIR` | Save outputs to a different directory; default: `data/output`. |
-| `--skip-speech` | Use visual and audio features without transcription. |
-| `--skip-audio` | Use visual features only; also skips speech. |
-| `--skip-analysis` | Reuse the existing visual bundle in the output directory. Audio and speech still run unless skipped. |
+| `--out-dir DIR` | Output directory; default: `data/output`. |
+| `--skip-speech` | Skip speech transcription. |
+| `--skip-audio` | Skip audio analysis and speech transcription. |
 | `--model NAME` | Speech model: `tiny`, `base`, `small`, `medium`, or `large-v3`. |
 | `--language CODE` | Transcription language; default: `en`. |
-| `--vad` | Enable voice activity detection for transcription. |
-| `--sample-fps N` | Visual sampling rate; default: `1.0`. |
-| `--window-sec N` | Visual window duration; default: `2.0` seconds. |
-| `--audio-window-sec N` | Audio window duration; default: `1.0` second. |
+| `--vad` | Enable speech voice activity detection in the runner; off by default there. |
+| `--sample-fps N` | Visual sample rate; default: `1.0`. |
+| `--window-sec N` | Visual window length; default: `2.0` seconds. |
+| `--audio-window-sec N` | Audio window length; default: `1.0` second. |
 
-`--min-segment-sec` remains accepted for compatibility, but the current fusion
-engine does not use this value. Its internal detection constraints still apply.
+`--min-segment-sec` is accepted for compatibility but unused by the current
+fusion engine. Its internal detection constraints still apply.
 
-For custom output directories, copy `<video_stem>_segments.json` beside the video
-so the player can find it. Videos with the same stem share an output filename;
-use separate output directories for them.
+For a custom output directory, copy `<video_stem>_segments.json` beside the
+video so the player can find it. Videos with the same stem share an output
+filename; use separate output directories for them.
 
 ## Output
 
-For `example.mp4`, the pipeline writes:
+For `example.mp4`, the runner writes:
 
 - `data/output/example_analysis_bundle.json`: visual windows, audio features,
-  and speech spans when enabled.
-- `data/output/example_segments.json`: labeled intervals consumed by the player.
+  and speech spans when enabled. The fusion CLI can also include OCR and semantic
+  spans in its bundle output.
+- `data/output/example_segments.json`: the labeled intervals used by the player.
 
 Example segment file (timestamps in seconds):
 
@@ -110,7 +155,8 @@ Example segment file (timestamps in seconds):
 }
 ```
 
-You can run fusion on the bundled example without a video or speech model:
+The bundled example illustrates the schema and can be fused without a video or
+speech model; it is not a detection benchmark:
 
 ```console
 python -m fusion --bundle sample_data/sample_analysis_bundle.json --skip-speech --out data/output/sample_segments.json
@@ -120,36 +166,33 @@ python -m fusion --bundle sample_data/sample_analysis_bundle.json --skip-speech 
 
 | Path | Role |
 | --- | --- |
-| `scripts/run_pipeline.py` | Single-video and batch pipeline runner. |
+| `scripts/run_pipeline.py` | Single-video visual/audio/speech runner. |
 | `visual/`, `visual_analyze/` | Visual feature extraction and CLI. |
 | `audio/`, `audio_analyze/` | Audio feature extraction and CLI. |
-| `Automatic_speech_recognition/` | Local model download and transcription. |
-| `fusion/` | Detection rules, boundary selection, and segment JSON output. |
+| `Automatic_speech_recognition/` | Local speech model download and transcription. |
+| `ocr/` | On-screen text extraction from sampled frames. |
+| `semantic/` | Semantic advertisement and video-structure scores. |
+| `fusion/` | Advertisement fusion, intro/outro detectors, and text dictionaries. |
 | `schemas/` | Shared analysis and dataset metadata models. |
-| `player/` | PySide6 player, timeline, and playback controls. |
-| `player_fusion.py` | Cached segment loading and live analysis for the player. |
-| `sample_data/` | Small analysis bundle example. |
-| `video_info/` | Optional stitched-video metadata example. |
+| `player/`, `player_fusion.py` | Desktop player, cache loading, and live analysis. |
+| `sample_data/`, `video_info/` | Small schema and stitched-video metadata examples. |
 
 Module details: [fusion](fusion/README.md), [player](player/README.md),
 [speech recognition](Automatic_speech_recognition/SETUP.md), and
 [dataset metadata](video_info/README.md).
 
-## Detection limits
+## Detection limits and data
 
-Detection uses heuristics tuned for vlog-style videos, including assumptions
-about advertisement duration and spacing. Short ads, closely spaced ads, and
-other video styles may be missed or receive inaccurate boundaries. The current
-fusion engine emits **Core Content**, **Intro**, **Outro**, and **Advertisement**;
-the player also accepts additional labels supplied in custom segment files.
-Intro and outro labeling currently runs when ad intervals are found; otherwise
-fusion returns a single content segment. Review the timeline before relying on
-content-only playback.
+Detection combines heuristic boundaries and text evidence, with assumptions about
+advertisement duration and video structure. Short advertisements, unusual video
+styles, or missing text evidence may produce inaccurate labels or boundaries.
+The engine emits Core Content, Intro, Outro, and Advertisement; the player accepts
+additional labels from custom JSON files. Review the timeline before relying on
+content-only playback. If live analysis fails, the player attempts to use one
+full-length content segment.
 
-If no cached segments exist, opening a video in the player starts live analysis
-in a background worker. Missing audio or speech dependencies are skipped there.
-If analysis fails, the player attempts to treat the entire video as content;
-check the terminal messages when expected labels are missing.
-
-Source videos, downloaded models, and generated analysis files are kept local
-and excluded from Git. No video dataset is included.
+Source videos, downloaded models, and generated outputs are excluded from Git.
+No video dataset is included. The optional extended brand dictionary retains its
+Simple Icons source and CC0 attribution in `fusion/extra_brand_names.txt`;
+brand names and trademarks belong to their respective owners. It is enabled by
+default in the current code; set `FUSION_USE_EXTRA_BRANDS=0` to disable it.

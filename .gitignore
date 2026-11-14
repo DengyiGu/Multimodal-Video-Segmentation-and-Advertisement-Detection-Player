@@ -19,6 +19,8 @@ dist/
 /videos_with_ad/*.mkv
 /videos_with_ad/*.avi
 /Automatic_speech_recognition/models/
+/ocr/models/
+/semantic/models/
 
 # Editor and operating system files
 .vscode/

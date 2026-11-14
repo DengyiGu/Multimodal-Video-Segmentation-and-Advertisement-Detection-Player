@@ -19,14 +19,16 @@ dependencies = [
 [project.optional-dependencies]
 player = ["PySide6>=6.7"]
 speech = ["faster-whisper", "huggingface_hub"]
+ocr = ["easyocr>=1.7.2"]
+semantic = ["sentence-transformers>=3.0.0", "scikit-learn>=1.8.0"]
 
 [tool.setuptools]
 py-modules = ["player_fusion"]
 packages = [
     "audio", "audio_analyze", "visual", "visual_analyze", "fusion",
-    "schemas", "player", "scripts", "Automatic_speech_recognition",
+    "schemas", "player", "scripts", "Automatic_speech_recognition", "ocr", "semantic",
 ]
 include-package-data = false
 
 [tool.setuptools.package-data]
-fusion = ["ad_signals.json"]
+fusion = ["ad_signals.json", "extra_brand_names.txt"]

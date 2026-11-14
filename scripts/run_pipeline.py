@@ -1,7 +1,32 @@
-"""Run visual, audio, speech, and fusion analysis for one video or a folder.
+"""End-to-end pipeline runner: visual -> audio (+ speech) -> fusion -> segments.
 
-Run from the repository root with ``python -m scripts.run_pipeline --help``.
-Outputs are cached in ``data/output`` for the desktop player.
+Usage
+-----
+Run from the repo root with PYTHONPATH set so the local packages are importable::
+
+    PYTHONPATH=. python scripts/run_pipeline.py videos_with_ad/test_001.mp4
+
+That single command:
+  1. Runs the visual analyzer and writes ``<stem>_analysis_bundle.json``.
+  2. Runs the audio analyzer (and Whisper, unless ``--skip-speech``) and merges
+     audio_windows + speech_spans into the same bundle.
+  3. Runs fusion and writes ``<stem>_segments.json``.
+
+After it finishes, opening the video in the player will load those segments
+automatically (player_fusion.py looks them up in ``data/output/``).
+
+Common options
+--------------
+  --skip-speech          Skip Whisper transcription (faster; reduces accuracy).
+  --skip-audio           Skip the audio modality entirely.
+  --model MODEL          Whisper model size (default: small).
+  --vad                  Enable Whisper VAD (skips silent regions).
+  --sample-fps F         Visual frame sample rate (default: 1.0).
+  --window-sec W         Visual window length in seconds (default: 2.0).
+  --audio-window-sec W   Audio window length in seconds (default: 1.0).
+  --min-segment-sec S    Minimum segment length used by fusion smoothing
+                         (default: 20.0).
+  --out-dir DIR          Output directory (default: data/output).
 """
 
 from __future__ import annotations
@@ -80,8 +105,25 @@ def _run_fusion(bundle_path: Path, segments_out: Path, min_segment_sec: float) -
             )
 
 
-def _process_video(video_path: Path, args: argparse.Namespace) -> int:
-    video = video_path.expanduser().resolve(strict=False)
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="python scripts/run_pipeline.py",
+        description="Run visual + audio + speech + fusion end-to-end on a video.",
+    )
+    parser.add_argument("video", type=Path, help="Input video file (.mp4 / .mov / ...).")
+    parser.add_argument("--out-dir", type=Path, default=Path("data/output"))
+    parser.add_argument("--skip-speech", action="store_true")
+    parser.add_argument("--skip-audio", action="store_true")
+    parser.add_argument("--model", default="small")
+    parser.add_argument("--language", default="en")
+    parser.add_argument("--vad", action="store_true")
+    parser.add_argument("--sample-fps", type=float, default=1.0)
+    parser.add_argument("--window-sec", type=float, default=2.0)
+    parser.add_argument("--audio-window-sec", type=float, default=1.0)
+    parser.add_argument("--min-segment-sec", type=float, default=20.0)
+    args = parser.parse_args(argv)
+
+    video = args.video.expanduser().resolve(strict=False)
     if not video.is_file():
         print(f"Error: video not found: {video}", file=sys.stderr)
         return 2
@@ -95,21 +137,14 @@ def _process_video(video_path: Path, args: argparse.Namespace) -> int:
     print(f"  Bundle  -> {bundle_path}")
     print(f"  Segments-> {segments_path}")
 
-    total_steps = (0 if args.skip_analysis else 1) + (0 if args.skip_audio else 1) + 1
+    total_steps = 1 + (0 if args.skip_audio else 1) + 1
     step = 0
 
-    if not args.skip_analysis:
-        step += 1
-        t0 = time.monotonic()
-        _print_step(step, total_steps, "Visual analysis")
-        _run_visual(video, bundle_path, args.sample_fps, args.window_sec)
-        print(f"     Took {time.monotonic() - t0:.1f}s")
-    else:
-        print("     Reusing existing visual analysis")
-        if not bundle_path.is_file():
-            print(f"Error: analysis bundle not found: {bundle_path}", file=sys.stderr)
-            return 3
-        print(f"     Using bundle -> {bundle_path}")
+    step += 1
+    t0 = time.monotonic()
+    _print_step(step, total_steps, "Visual analysis")
+    _run_visual(video, bundle_path, args.sample_fps, args.window_sec)
+    print(f"     Took {time.monotonic() - t0:.1f}s")
 
     if not args.skip_audio:
         step += 1
@@ -137,76 +172,10 @@ def _process_video(video_path: Path, args: argparse.Namespace) -> int:
     print(f"     Took {time.monotonic() - t0:.1f}s")
 
     print()
-    print(f"Done for {video.name}. Launch the player with:")
-    print("  python -m player.player")
-    print(f"  (open '{video}'; if using a custom output directory, copy {segments_path.name} beside the video)")
+    print(f"Done. Launch the player with:")
+    print(f"  PYTHONPATH=. python -m player.player")
+    print(f"  (open '{video}' in the file dialog; segments load from {segments_path.name})")
     return 0
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="python -m scripts.run_pipeline",
-        description="Run visual + audio + speech + fusion end-to-end on a video.",
-    )
-    parser.add_argument(
-        "video",
-        type=Path,
-        nargs="?",
-        help="Input video file (.mp4 / .mov / ...). Omit when using --input-dir.",
-    )
-    parser.add_argument(
-        "--input-dir",
-        type=Path,
-        help="Process all video files in a directory instead of a single file.",
-    )
-    parser.add_argument("--out-dir", type=Path, default=Path("data/output"))
-    parser.add_argument("--skip-speech", action="store_true")
-    parser.add_argument("--skip-audio", action="store_true")
-    parser.add_argument("--model", default="small")
-    parser.add_argument("--language", default="en")
-    parser.add_argument("--vad", action="store_true")
-    parser.add_argument("--sample-fps", type=float, default=1.0)
-    parser.add_argument("--window-sec", type=float, default=2.0)
-    parser.add_argument("--audio-window-sec", type=float, default=1.0)
-    parser.add_argument(
-        "--min-segment-sec", type=float, default=20.0,
-        help="Compatibility option; unused by the current fusion engine.",
-    )
-    parser.add_argument(
-        "--skip-analysis",
-        action="store_true",
-        help="Reuse the existing visual bundle; audio and speech still run unless skipped.",
-    )
-    args = parser.parse_args(argv)
-
-    if args.input_dir and args.video:
-        print("Error: provide either a single video or --input-dir, not both", file=sys.stderr)
-        return 4
-
-    if args.input_dir:
-        input_dir = args.input_dir.expanduser().resolve(strict=False)
-        if not input_dir.is_dir():
-            print(f"Error: input directory not found: {input_dir}", file=sys.stderr)
-            return 5
-
-        video_exts = {".mp4", ".mov", ".mkv", ".avi"}
-        videos = sorted([p for p in input_dir.iterdir() if p.suffix.lower() in video_exts and p.is_file()])
-        if not videos:
-            print(f"No video files found in: {input_dir}", file=sys.stderr)
-            return 6
-
-        overall_failed = 0
-        for vid in videos:
-            rc = _process_video(vid, args)
-            if rc != 0:
-                overall_failed = 1
-        return overall_failed
-
-    if not args.video:
-        print("Error: no input specified. Provide a video path or --input-dir.", file=sys.stderr)
-        return 1
-
-    return _process_video(args.video, args)
 
 
 if __name__ == "__main__":

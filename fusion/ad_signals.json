@@ -18,20 +18,15 @@
       "tropicana", "minute maid", "simply orange", "naked juice",
       "yoplait", "chobani", "fage", "activia",
       "hellmann's", "hellmans", "kraft", "heinz", "kellogg's", "kelloggs",
-      "general mills", "quaker", "campbells", "campbell's", "frank's red hot",
-      "cheerios", "frosted flakes", "lucky charms", "cinnamon toast crunch",
-      "froot loops", "apple jacks", "rice krispies", "corn flakes", "special k",
-      "raisin bran", "post", "shredded wheat", "grape-nuts", "life cereal",
-      "kix", "wheaties", "cap'n crunch", "honey bunches of oats", "fruity pebbles",
-      "cocoa pebbles", "trix", "cocoa puffs", "count chocula", "mini wheats"
+      "general mills", "quaker", "campbells", "campbell's"
     ],
     "tech_electronics": [
       "apple", "iphone", "ipad", "macbook", "airpods",
       "samsung", "samsung galaxy", "galaxy s", "galaxy z",
       "google", "google pixel", "pixel phone", "google home",
       "microsoft", "surface", "xbox", "windows",
-      "sony", "playstation", "ps5", "ps4", "bosch",
-      "nvidia", "intel", "ramp", "amd", "qualcomm",
+      "sony", "playstation", "ps5", "ps4",
+      "nvidia", "intel", "amd", "qualcomm",
       "lg", "lenovo", "dell", "hp", "asus", "acer", "razer",
       "amazon", "amazon echo", "alexa", "amazon fire", "kindle",
       "meta", "oculus", "quest", "meta quest",
@@ -114,8 +109,7 @@
       "directv", "starlink"
     ],
     "subscription_lifestyle": [
-      "hello fresh", "hellofresh", "factor", "blue apron", "sunbasket", 
-      "instacart", "uber eats", "ubereats", "doordash", "grubhub", "postmates",
+      "hello fresh", "hellofresh", "factor", "blue apron", "sunbasket",
       "daily harvest", "home chef",
       "dollar shave club", "manscaped", "native",
       "stitch fix", "trunk club", "bombas", "quip",
@@ -146,7 +140,9 @@
       "thanks for watching", "see you next time", "see you in the next",
       "until next time", "that's all for today", "that's it for today",
       "goodbye", "bye for now", "see you soon", "peace out",
-      "that's a wrap", "catch you later", "signing off"
+      "that's a wrap", "catch you later", "signing off",
+      "thank you", "thanks everyone", "thanks so much",
+      "the lesson i want to leave you with"
     ],
     "intro": [
       "welcome back", "welcome to", "in today's video", "in this video",
